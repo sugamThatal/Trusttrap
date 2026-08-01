@@ -52,11 +52,4 @@ Expected response shape:
 - [ ] Day 6: Calibrate against real test images - NEXT UP
 - [ ] Day 7: Integration with the mobile app
 
-## Notes
-
-- `app/clip_match.py` and `app/ai_detector.py` have detailed docstrings
-  with the implementation plan and code sketch - come back to me when
-  you're ready to fill either one in, or if you hit an error.
-- The scoring weights in `scoring.py` are guesses. Don't defend them to
-  judges as "tuned" until you've actually run real test images through
-  on Day 6.
+##
