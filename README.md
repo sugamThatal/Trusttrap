@@ -43,13 +43,13 @@ Expected response shape:
 
 ## Status (update as you go)
 
-- [x] Day 1: BLIP captioning (`app/captioning.py`) - DONE
+- [x] Day 1: BLIP captioning (`app/captioning.py`) - DONE (fixed repetition-loop bug)
 - [x] Day 2: EXIF check (`app/exif_check.py`) - DONE
-- [ ] Day 3: CLIP caption-image mismatch (`app/clip_match.py`) - stubbed, needs implementation
-- [ ] Day 3: AI-generated image detector (`app/ai_detector.py`) - stubbed, needs implementation
+- [x] Day 3: CLIP caption-image mismatch (`app/clip_match.py`) - DONE
+- [x] Day 3: AI-generated image detector (`app/ai_detector.py`) - DONE (Organika/sdxl-detector)
 - [x] Day 4: Scoring logic (`app/scoring.py`) - DONE, but weights are placeholders, calibrate Day 6
 - [x] Day 5: FastAPI wiring (`app/main.py`) - DONE, contract matches your spec
-- [ ] Day 6: Calibrate against real test images
+- [ ] Day 6: Calibrate against real test images - NEXT UP
 - [ ] Day 7: Integration with the mobile app
 
 ## Notes

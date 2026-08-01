@@ -45,7 +45,13 @@ def generate_caption(image: Image.Image) -> str:
     inputs = processor(images=image, return_tensors="pt").to(DEVICE)
 
     with torch.no_grad():
-        output_ids = model.generate(**inputs, max_new_tokens=40)
+        output_ids = model.generate(
+            **inputs,
+            max_new_tokens=40,
+            num_beams=3,           # beam search instead of greedy - considers multiple paths
+            repetition_penalty=1.5,  # penalizes repeating the same token
+            no_repeat_ngram_size=3,  # hard-blocks repeating any 3-word phrase
+        )
 
     caption = processor.decode(output_ids[0], skip_special_tokens=True)
     return caption.strip()
