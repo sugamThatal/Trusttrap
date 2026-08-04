@@ -54,16 +54,21 @@ The Android application is located in:
 TrustTapAndroid/
 ```
 
-Implemented features:
+## Opening the project
+
+1. Open **Android Studio**
+2. Select **Open**
+3. Choose the `TrustTapAndroid` folder
+4. Let Gradle sync and download dependencies
+5. Run the app on an Android Emulator or a physical Android device
+
+## Features
 
 - Image picker
-- Retrofit networking
+- Retrofit API integration
 - FastAPI backend communication
 - Trust score display
 - Accessible result screen
-- Works with Android Emulator (`10.0.2.2`)
-
----
 
 # Backend URL
 
