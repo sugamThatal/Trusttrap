@@ -1,0 +1,32 @@
+# ===========================
+# Python
+# ===========================
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VS Code
+.vscode/
+
+# ===========================
+# Android Studio
+# ===========================
+TrustTapAndroid/.gradle/
+TrustTapAndroid/**/build/
+TrustTapAndroid/local.properties
+TrustTapAndroid/.idea/
+
+# Native build
+TrustTapAndroid/.cxx/
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
