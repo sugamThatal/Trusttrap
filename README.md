@@ -1,62 +1,130 @@
-# TrustTap - Image Analysis Backend
+# TrustTap – Image Analysis Backend
 
-## Setup (run on your Mac, Anaconda env)
+TrustTap is an accessibility-first misinformation detection backend with an Android frontend. The backend analyzes an image using multiple verification modules and returns an explainable trust score for the mobile application.
+
+---
+
+# Backend Setup
+
+## macOS (Anaconda)
 
 ```bash
 cd trusttap
+
 /opt/anaconda3/bin/python -m pip install -r requirements.txt
 ```
 
-First install will take a few minutes (torch is large). No GPU-specific
-setup needed - it'll auto-use Apple Silicon's MPS backend if available,
-otherwise falls back to CPU.
+The first installation may take a few minutes because PyTorch is large. On Apple Silicon, PyTorch will automatically use the MPS backend if available, otherwise it falls back to CPU.
 
-## Run the server
+## Windows (Python Virtual Environment)
+
+```bash
+python -m venv venv
+
+venv\Scripts\activate
+
+pip install -r requirements.txt
+```
+
+---
+
+# Run the Backend
+
+### macOS
 
 ```bash
 /opt/anaconda3/bin/python -m uvicorn app.main:app --reload --port 8000
 ```
 
-First request will download BLIP's weights (~1GB) from Hugging Face -
-one-time, cached after that. Give it a minute on the first call.
+### Windows
 
-## Test it
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+The first request downloads BLIP's pretrained weights (~1 GB) from Hugging Face. This only happens once and is cached afterwards.
+
+---
+
+# Android Frontend
+
+The Android application is located in:
+
+```text
+TrustTapAndroid/
+```
+
+Implemented features:
+
+- Image picker
+- Retrofit networking
+- FastAPI backend communication
+- Trust score display
+- Accessible result screen
+- Works with Android Emulator (`10.0.2.2`)
+
+---
+
+# Backend URL
+
+### Android Emulator
+
+```
+http://10.0.2.2:8000/
+```
+
+### Physical Android Device
+
+Replace `YOUR_PC_IP` with your computer's local IP address.
+
+```
+http://YOUR_PC_IP:8000/
+```
+
+---
+
+# API Test
 
 ```bash
 curl -X POST http://localhost:8000/analyze-image \
-  -F "image=@/path/to/some/test.jpg" \
+  -F "image=@/path/to/test.jpg" \
   -F "claimed_caption=A protest in downtown yesterday"
 ```
 
-`claimed_caption` is optional - you can omit `-F "claimed_caption=..."`
-entirely while testing before Day 3's CLIP module is filled in.
+`claimed_caption` is optional and can be omitted until the CLIP caption-image verification module is implemented.
 
-Expected response shape:
+---
+
+# Expected Response
+
 ```json
 {
   "trust_score": 80,
   "risk": "Low",
-  "reason": ["Metadata missing"],
+  "reason": [
+    "Metadata missing"
+  ],
   "accessible_description": "Image shows: a group of people holding signs at a protest"
 }
 ```
 
-## Status (update as you go)
+---
 
-- [x] Day 1: BLIP captioning (`app/captioning.py`) - DONE
-- [x] Day 2: EXIF check (`app/exif_check.py`) - DONE
-- [ ] Day 3: CLIP caption-image mismatch (`app/clip_match.py`) - stubbed, needs implementation
-- [ ] Day 3: AI-generated image detector (`app/ai_detector.py`) - stubbed, needs implementation
-- [x] Day 4: Scoring logic (`app/scoring.py`) - DONE, but weights are placeholders, calibrate Day 6
-- [x] Day 5: FastAPI wiring (`app/main.py`) - DONE, contract matches your spec
-- [ ] Day 6: Calibrate against real test images
-- [ ] Day 7: Integration with the mobile app
+# Development Status
 
-## Notes
+- ✅ Day 1: BLIP caption generation (`app/captioning.py`)
+- ✅ Day 2: EXIF metadata analysis (`app/exif_check.py`)
+- ⏳ Day 3: CLIP caption-image mismatch (`app/clip_match.py`)
+- ⏳ Day 3: AI-generated image detection (`app/ai_detector.py`)
+- ✅ Day 4: Scoring logic (`app/scoring.py`)
+- ✅ Day 5: FastAPI backend (`app/main.py`)
+- ⏳ Day 6: Calibrate scoring against real-world test images
+- ✅ Day 7: Android frontend integration
 
-- `app/clip_match.py` and `app/ai_detector.py` have detailed docstrings
-  with the implementation plan and code sketch - come back to me when
-  you're ready to fill either one in, or if you hit an error.
-- The scoring weights in `scoring.py` are guesses. Don't defend them to
-  judges as "tuned" until you've actually run real test images through
-  on Day 6.
+---
+
+# Notes
+
+- `app/clip_match.py` and `app/ai_detector.py` currently contain implementation plans and code skeletons.
+- The scoring weights in `scoring.py` are placeholder values and should be calibrated using real-world datasets before deployment.
+- The Android application communicates with the backend through Retrofit and currently targets `http://10.0.2.2:8000/` when running on the Android Emulator.
