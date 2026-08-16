@@ -152,3 +152,34 @@ python training/train_text_model.py --input C:\path\to\text_labels.csv --output 
 
 Restart Uvicorn after training. The text endpoint will combine that model with
 the explainable rules. Read `training/README.md` before using real messages.
+
+## macOS setup (for Mac users)
+
+Windows steps above use PowerShell; here's the Mac equivalent for the same steps.
+
+### 1. Start the backend
+
+Open Terminal in the outer `Trusttrap-main` folder:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### 2. Optional OCR setup
+
+```bash
+brew install tesseract
+```
+
+No extra environment variable needed if installed via Homebrew — it's found on PATH automatically.
+
+### 3. Find your Mac's Wi-Fi IP (for testing on a real phone)
+
+- System Settings → Wi-Fi → click the (i) next to your network → note the IP address
+- Or in Terminal: `ipconfig getifaddr en0` (try `en1` if that's empty)
+- macOS will show a firewall popup the first time the backend starts — click **Allow**
+
+Everything from "Open and build the Android app" onward is identical on both platforms.
