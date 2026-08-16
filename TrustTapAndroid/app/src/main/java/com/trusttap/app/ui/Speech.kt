@@ -8,8 +8,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
 
+class TrustTapSpeaker internal constructor(
+    private val engine: () -> TextToSpeech?,
+    private val ready: () -> Boolean
+) {
+    operator fun invoke(text: String) {
+        if (ready()) {
+            engine()?.speak(
+                text,
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                "trusttap_result"
+            )
+        }
+    }
+
+    fun stop() {
+        engine()?.stop()
+    }
+}
+
 @Composable
-fun rememberTrustTapSpeaker(): (String) -> Unit {
+fun rememberTrustTapSpeaker(): TrustTapSpeaker {
     val context = LocalContext.current
     val engineState = remember { mutableStateOf<TextToSpeech?>(null) }
     val readyState = remember { mutableStateOf(false) }
@@ -32,14 +52,10 @@ fun rememberTrustTapSpeaker(): (String) -> Unit {
         }
     }
 
-    return { text ->
-        if (readyState.value) {
-            engineState.value?.speak(
-                text,
-                TextToSpeech.QUEUE_FLUSH,
-                null,
-                "trusttap_result"
-            )
-        }
+    return remember {
+        TrustTapSpeaker(
+            engine = { engineState.value },
+            ready = { readyState.value }
+        )
     }
 }

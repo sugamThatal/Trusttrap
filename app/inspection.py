@@ -29,6 +29,8 @@ def _next_actions(risk: str, reasons: list[str], url_actions: list[str]) -> list
         actions.append("Pause. Do not open links, send money, or share codes yet.")
     elif risk == "Medium":
         actions.append("Pause and verify the claim through a trusted source before acting.")
+    elif risk == "Unknown":
+        actions.append("TrustTap received only a social link, not the post. Share the image or copy the post text to inspect it.")
     else:
         actions.append("No common warning pattern was found, but verify important claims independently.")
     if any(word in lower_reasons for word in ("password", "code", "secret", "payment", "money")):
@@ -51,15 +53,24 @@ def _follow_ups(has_text: bool, has_urls: bool) -> list[str]:
 def inspect_text_report(text: str, input_type: str = "text") -> dict:
     result = check_text(text)
     url_findings = inspect_urls(text)
-    url_reasons, url_actions, url_score = url_summary(url_findings)
+    url_reasons, url_actions, url_score, content_unavailable = url_summary(url_findings)
     score = min(result["trust_score"], url_score)
     reasons = _dedupe(result["reason"] + url_reasons)
-    risk = _risk_for_score(score)
+    risk = "Unknown" if content_unavailable else _risk_for_score(score)
+    if content_unavailable:
+        score = 50
+        reasons = ["Only a social-media link was received; the post content was not included"] + [
+            reason for reason in reasons if reason != "Link present; check the destination before opening"
+        ]
+        description = "TrustTap received only a social-media link, not the post's image or text. It cannot tell what the post is about or verify the post from this link alone. Open the post and share the image or copy the post text into TrustTap."
+    else:
+        description = result["accessible_description"]
     return {
         **result,
         "trust_score": score,
         "risk": risk,
         "reason": reasons,
+        "accessible_description": description,
         "extracted_text": text.strip(),
         "url_findings": url_findings,
         "next_actions": _next_actions(risk, reasons, url_actions),
@@ -67,6 +78,8 @@ def inspect_text_report(text: str, input_type: str = "text") -> dict:
         "limitations": ["This is a safety triage, not proof that the message is true or false."],
         "analysis_method": f"{result['analysis_method']}; local URL inspection",
         "input_type": input_type,
+        "content_available": not content_unavailable,
+        "content_message": "Post content was not included with this social link." if content_unavailable else "Text was received for review.",
     }
 
 
@@ -80,7 +93,7 @@ def enrich_media_report(
 ) -> dict:
     searchable_text = " ".join(part for part in (extracted_text, claimed_caption or "") if part).strip()
     url_findings = inspect_urls(searchable_text)
-    url_reasons, url_actions, url_score = url_summary(url_findings)
+    url_reasons, url_actions, url_score, content_unavailable = url_summary(url_findings)
     reasons = list(base_response.get("reason", []))
     score = int(base_response.get("trust_score", 0))
     method = "existing media ensemble + local URL inspection"
@@ -95,8 +108,13 @@ def enrich_media_report(
         reasons.extend(url_reasons)
     score = min(score, url_score)
     reasons = _dedupe(reasons)
-    risk = _risk_for_score(score)
+    risk = "Unknown" if content_unavailable else _risk_for_score(score)
     description = base_response.get("accessible_description", "")
+    if content_unavailable:
+        score = 50
+        risk = "Unknown"
+        reasons = ["Only a social-media link was received; the post content was not included"] + reasons
+        description = "TrustTap received only a social-media link, not the post's image or text. It cannot tell what the post is about or verify the post from this link alone. Open the post and share the image or copy the post text into TrustTap."
     if extracted_text.strip():
         excerpt = " ".join(extracted_text.split())[:240]
         description += f" Readable text: {excerpt}."
@@ -122,5 +140,7 @@ def enrich_media_report(
         "input_type": input_type,
         "ocr_available": bool(ocr_status.get("available", False)),
         "text_model_available": text_model_status()["available"],
+        "content_available": not content_unavailable,
+        "content_message": "Post content was not included with this social link." if content_unavailable else "Media content was received for review.",
     }
     return response

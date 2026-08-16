@@ -29,11 +29,35 @@ def _host_for(raw_url: str) -> tuple[str, str]:
     return normalized, (parsed.hostname or "").casefold()
 
 
+def _is_social_share_link(host: str, path: str) -> bool:
+    path = path.casefold()
+    return (
+        host in {"facebook.com", "www.facebook.com", "fb.com", "www.fb.com"}
+        and path.startswith("/share/")
+    ) or (
+        host in {"instagram.com", "www.instagram.com"}
+        and (path.startswith("/p/") or path.startswith("/reel/") or path.startswith("/share/"))
+    ) or (
+        host in {"x.com", "www.x.com", "twitter.com", "www.twitter.com"}
+        and "/status/" in path
+    )
+
+
 def inspect_urls(text: str) -> list[dict]:
     findings: list[dict] = []
     for raw_url in extract_urls(text):
         normalized, host = _host_for(raw_url)
         parsed = urlparse(normalized)
+        if _is_social_share_link(host, parsed.path):
+            findings.append({
+                "url": raw_url,
+                "host": host or "unknown host",
+                "risk": "Unknown",
+                "signals": ["This is a social post link; the post image and text were not included"],
+                "recommended_action": "Open the post in the original app, then share its image or copy its text into TrustTap.",
+                "content_available": False,
+            })
+            continue
         signals: list[str] = []
         points = 0
 
@@ -78,14 +102,16 @@ def inspect_urls(text: str) -> list[dict]:
             "risk": risk,
             "signals": signals,
             "recommended_action": action,
+            "content_available": True,
         })
     return findings
 
 
-def url_summary(findings: list[dict]) -> tuple[list[str], list[str], int]:
+def url_summary(findings: list[dict]) -> tuple[list[str], list[str], int, bool]:
     reasons: list[str] = []
     actions: list[str] = []
     score = 100
+    content_unavailable = False
     for finding in findings:
         if finding["risk"] != "Low":
             for signal in finding["signals"]:
@@ -93,5 +119,6 @@ def url_summary(findings: list[dict]) -> tuple[list[str], list[str], int]:
                     reasons.append(signal)
         if finding["recommended_action"] not in actions:
             actions.append(finding["recommended_action"])
-        score = min(score, {"High": 35, "Medium": 65, "Low": 100}[finding["risk"]])
-    return reasons, actions, score
+        score = min(score, {"High": 35, "Medium": 65, "Low": 100, "Unknown": 50}[finding["risk"]])
+        content_unavailable = content_unavailable or not finding.get("content_available", True)
+    return reasons, actions, score, content_unavailable

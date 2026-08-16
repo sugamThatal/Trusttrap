@@ -32,7 +32,9 @@ data class AnalysisResponse(
     val analysis_method: String? = null,
     val input_type: String? = null,
     val ocr_available: Boolean? = null,
-    val text_model_available: Boolean? = null
+    val text_model_available: Boolean? = null,
+    val content_available: Boolean? = null,
+    val content_message: String? = null
 )
 
 /**

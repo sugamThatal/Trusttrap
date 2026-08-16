@@ -263,6 +263,13 @@ fun CheckScreen(
                 modifier = Modifier.padding(top = 7.dp, bottom = 16.dp)
             )
 
+            OutlinedButton(
+                onClick = { speak.stop() },
+                modifier = Modifier.fillMaxWidth().height(52.dp).padding(bottom = 12.dp)
+            ) {
+                Text("Stop speaking")
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 if (inputMode == InputMode.MEDIA) {
                     Button(onClick = { inputMode = InputMode.MEDIA }, modifier = Modifier.weight(1f).height(56.dp)) {
@@ -396,16 +403,27 @@ fun CheckScreen(
             }
 
             result?.let { response ->
-                TrustTapResultCard(response, onReplay = { speak(buildSpokenSummary(response)) }, onOpenEvidence = uriHandler::openUri)
+                TrustTapResultCard(
+                    response,
+                    onReplay = { speak(buildSpokenSummary(response)) },
+                    onStop = { speak.stop() },
+                    onOpenEvidence = uriHandler::openUri
+                )
                 FollowUpPanel(
                     question = followUpQuestion,
                     answer = followUpAnswer,
                     onQuestionChange = { followUpQuestion = it },
                     onAsk = {
                         followUpAnswer = buildFollowUpAnswer(followUpQuestion, response)
-                        followUpAnswer?.let(speak)
+                        followUpAnswer?.let { answer ->
+                            speak(answer)
+                        }
                     },
-                    onReplay = { followUpAnswer?.let(speak) },
+                    onReplay = {
+                        followUpAnswer?.let { answer ->
+                            speak(answer)
+                        }
+                    },
                     onVoiceQuestion = {
                         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -545,12 +563,18 @@ fun buildFollowUpAnswer(question: String, result: AnalysisResponse): String {
 }
 
 @Composable
-fun TrustTapResultCard(result: AnalysisResponse, onReplay: () -> Unit, onOpenEvidence: (String) -> Unit) {
+fun TrustTapResultCard(
+    result: AnalysisResponse,
+    onReplay: () -> Unit,
+    onOpenEvidence: (String) -> Unit,
+    onStop: () -> Unit = {}
+) {
     val riskColor: Color
     val riskIcon: androidx.compose.ui.graphics.vector.ImageVector
     when (result.risk.lowercase()) {
         "high" -> { riskColor = Color(0xFFB3261E); riskIcon = Icons.Filled.Error }
         "medium" -> { riskColor = Color(0xFF9A6700); riskIcon = Icons.Filled.Warning }
+        "unknown" -> { riskColor = Color(0xFF806000); riskIcon = Icons.Filled.Warning }
         else -> { riskColor = Color(0xFF237A50); riskIcon = Icons.Filled.CheckCircle }
     }
     Card(
@@ -570,6 +594,9 @@ fun TrustTapResultCard(result: AnalysisResponse, onReplay: () -> Unit, onOpenEvi
             LinearProgressIndicator(progress = { result.trust_score.coerceIn(0, 100) / 100f }, modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(4.dp)), color = riskColor, trackColor = riskColor.copy(alpha = .16f))
             Spacer(Modifier.height(16.dp))
             Text(result.accessible_description, style = MaterialTheme.typography.bodyLarge)
+            result.content_message?.let { message ->
+                Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+            }
             result.analysis_method?.let { method ->
                 Text("Checked with: $method", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             }
@@ -579,7 +606,7 @@ fun TrustTapResultCard(result: AnalysisResponse, onReplay: () -> Unit, onOpenEvi
                 result.reason.forEach { reason -> Text("• $reason", modifier = Modifier.padding(top = 3.dp)) }
             }
             result.extracted_text?.takeIf { it.isNotBlank() }?.let { extracted ->
-                Text("Readable text", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
+                Text(if (result.content_available == false) "Received link" else "Readable text", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
                 Text(extracted, style = MaterialTheme.typography.bodyMedium, maxLines = 8)
             }
             result.next_actions?.takeIf { it.isNotEmpty() }?.let { actions ->
@@ -605,6 +632,9 @@ fun TrustTapResultCard(result: AnalysisResponse, onReplay: () -> Unit, onOpenEvi
                 Icon(Icons.Filled.VolumeUp, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Replay result")
+            }
+            OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Text("Stop speaking")
             }
         }
     }
