@@ -5,6 +5,12 @@ Deliberately a plain weighted rule-set, NOT another ML model - this needs
 to be explainable in front of judges ("here's exactly why this image got
 flagged"), and it's fast to tune without retraining anything.
 
+Shared by BOTH /analyze-image and /analyze-video (main.py) - video just
+passes has_exif=True (meaning "not counted against you", since there's
+no EXIF-equivalent check for video yet) and an ai_generated_probability
+that's the worst score across several sampled frames rather than a
+single image.
+
 IMPORTANT: the weights and thresholds below are PLACEHOLDERS. On Day 6,
 run ~15-20 real test images (mix of genuine photos, AI-generated images,
 and caption-mismatched examples) through this and adjust the numbers

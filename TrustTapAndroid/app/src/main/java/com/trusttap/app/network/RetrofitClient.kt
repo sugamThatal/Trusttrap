@@ -8,35 +8,41 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    /**
-     * 10.0.2.2 is the Android EMULATOR's special alias for "the host
-     * machine's localhost" - use this while the FastAPI server runs on
-     * the same laptop as Android Studio.
-     *
-     * Testing on a REAL phone instead? Both devices need to be on the same
-     * Wi-Fi, and this must be your laptop's actual LAN IP, e.g.:
-     *   "http://192.168.1.42:8000/"
-     * Find it with `ipconfig getifaddr en0` (Mac) or `ipconfig` (Windows).
-     */
-    private const val BASE_URL = "http://10.0.2.2:8000/"
-
     private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        // Useful during development, but avoid logging request bodies in a
+        // production build because shared photos may be sensitive.
+        level = HttpLoggingInterceptor.Level.BASIC
     }
 
     private val client = OkHttpClient.Builder()
         .addInterceptor(logging)
         .connectTimeout(30, TimeUnit.SECONDS)
-        // BLIP + CLIP inference on a CPU can take a while - don't time out early
-        .readTimeout(60, TimeUnit.SECONDS)
+        // Uploading a video file takes longer than a photo - OkHttp's
+        // default writeTimeout is only 10s, too short for that.
+        .writeTimeout(60, TimeUnit.SECONDS)
+        // Video analysis runs the AI-detector across several sampled
+        // frames sequentially on CPU, on top of BLIP+CLIP - meaningfully
+        // slower than a single image, so this needs real headroom.
+        .readTimeout(180, TimeUnit.SECONDS)
         .build()
 
-    val api: TrustTapApi by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(TrustTapApi::class.java)
+    private val apiCache = mutableMapOf<String, TrustTapApi>()
+
+    @Synchronized
+    fun api(baseUrl: String): TrustTapApi {
+        val normalizedUrl = normalizeBaseUrl(baseUrl)
+        return apiCache.getOrPut(normalizedUrl) {
+            Retrofit.Builder()
+                .baseUrl(normalizedUrl)
+                .client(client)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+                .create(TrustTapApi::class.java)
+        }
+    }
+
+    fun normalizeBaseUrl(baseUrl: String): String {
+        val trimmed = baseUrl.trim()
+        return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
     }
 }
